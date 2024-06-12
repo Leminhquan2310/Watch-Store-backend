@@ -6,10 +6,12 @@ const {
   addAddressDelivery,
   deleteUser,
   updateUser,
+  login,
 } = require("../Controllers/users.controller");
 
 const userRouter = express.Router();
 
+userRouter.post("/login", login);
 userRouter.get("/", getAll);
 userRouter.post("/create-user", createSimpleUser);
 userRouter.get("/find-addresses", getUserAddresses);

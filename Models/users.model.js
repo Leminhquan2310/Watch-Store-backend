@@ -5,11 +5,11 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, minlength: 4, unique: true },
   password: {
     type: String,
-    require: true,
+    required: true,
   },
   email: {
     type: String,
-    require: true,
+    required: true,
     unique: true,
     match: /^\S+@\S+\.\S+$/,
   },
@@ -23,7 +23,12 @@ const userSchema = new mongoose.Schema({
       message: (props) => `${props.value} is not a valid phone number!`,
     },
     unique: true,
-    require: true,
+    required: true,
+  },
+  role: {
+    type: String,
+    enum: ["Admin", "Customer"],
+    default: "Customer",
   },
   addressDelivery: [{ type: mongoose.Schema.Types.ObjectId, ref: "addresses" }],
   createdAt: {

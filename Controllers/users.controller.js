@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const addressesModel = require("../Models/addresses.model");
 const usersModel = require("../Models/users.model");
+const jwt = require("jsonwebtoken");
 
 const getAll = async (req, res, next) => {
   try {
@@ -18,7 +19,7 @@ const getAll = async (req, res, next) => {
 };
 
 const createSimpleUser = async (req, res) => {
-  const { name, username, password, email, phoneNumber } = req.body;
+  const { name, username, password, email, phoneNumber, role } = req.body;
   const salt = await bcrypt.genSalt(10);
 
   try {
@@ -30,6 +31,7 @@ const createSimpleUser = async (req, res) => {
       password: hashedPassword,
       email,
       phoneNumber,
+      role,
     });
 
     res.status(200).json(result);
@@ -116,6 +118,7 @@ const updateUser = async (req, res) => {
         ? user.phoneNumber
         : existUser.phoneNumber;
     existUser.password = hashedPassword ?? existUser.password;
+    existUser.role = user.role || user.role !== "" ? user.role : existUser.role;
     await existUser.save();
     res.status(201).json({
       data: existUser,
@@ -136,6 +139,50 @@ const updateUser = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await usersModel.findOne({ username });
+
+    if (user) {
+      bcrypt.compare(password, user.password, (err, result) => {
+        if (err) {
+          return res.status(500).json({ message: "Error compare password" });
+        }
+        if (result) {
+          const accessToken = jwt.sign(
+            { username: user.username },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: process.env.TOKEN_LIFE }
+          );
+
+          const refreshToken = jwt.sign(
+            { username: user.username },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: process.env.REFRESH_TOKEN_LIFE }
+          );
+
+          res.status(200).json({
+            accessToken,
+            refreshToken,
+          });
+        } else {
+          res.status(400).json({ message: "Password incorrect" });
+        }
+      });
+    } else {
+      res.status(500).json({
+        message: "This user is not exist!",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      data: error,
+    });
+  }
+};
+
 module.exports = {
   getAll,
   createSimpleUser,
@@ -143,4 +190,5 @@ module.exports = {
   addAddressDelivery,
   deleteUser,
   updateUser,
+  login,
 };
