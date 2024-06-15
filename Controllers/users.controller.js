@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const addressesModel = require("../Models/addresses.model");
 const usersModel = require("../Models/users.model");
+const refreshTokenModel = require("../Models/refreshToken.model");
 const jwt = require("jsonwebtoken");
 
 const getAll = async (req, res, next) => {
@@ -21,7 +22,6 @@ const getAll = async (req, res, next) => {
 const createSimpleUser = async (req, res) => {
   const { name, username, password, email, phoneNumber, role } = req.body;
   const salt = await bcrypt.genSalt(10);
-
   try {
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -36,7 +36,6 @@ const createSimpleUser = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.log(error);
     if (error.code === 11000) {
       // Lỗi trùng lặp unique
       const field = Object.keys(error.keyValue)[0];
@@ -163,6 +162,12 @@ const login = async (req, res) => {
             { expiresIn: process.env.REFRESH_TOKEN_LIFE }
           );
 
+          refreshTokenModel.create({
+            userId: user._id,
+            token: refreshToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+
           res.status(200).json({
             accessToken,
             refreshToken,
@@ -183,6 +188,32 @@ const login = async (req, res) => {
   }
 };
 
+const register = async (req, res) => {
+  const { name, email, username, password, phoneNumber } = req.body;
+  const salt = await bcrypt.genSalt(10);
+  try {
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const result = await usersModel.create({
+      name,
+      email,
+      username,
+      password: hashedPassword,
+      phoneNumber,
+    });
+    res.status(201).json(result);
+  } catch (error) {
+    if (error.code === 11000) {
+      // Lỗi trùng lặp unique
+      const field = Object.keys(error.keyValue)[0];
+      res.status(400).json({
+        [field]: { message: `This ${field} already exist!`, status: "error" },
+      });
+    } else {
+      res.status(500).json("message: " + error.message);
+    }
+  }
+};
+
 module.exports = {
   getAll,
   createSimpleUser,
@@ -191,4 +222,5 @@ module.exports = {
   deleteUser,
   updateUser,
   login,
+  register,
 };
