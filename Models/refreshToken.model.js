@@ -14,14 +14,13 @@ const refreshTokenSchema = mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
+    expires: 300,
   },
   createAt: {
     type: Date,
     default: Date.now(),
   },
 });
-
-refreshTokenSchema.index({ expiresAt: 1, expireAfterSeconds: 0 });
 
 const refreshToken = mongoose.model("refreshToken", refreshTokenSchema);
 

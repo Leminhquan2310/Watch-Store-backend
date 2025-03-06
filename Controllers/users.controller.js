@@ -1,8 +1,6 @@
 const bcrypt = require("bcrypt");
 const addressesModel = require("../Models/addresses.model");
 const usersModel = require("../Models/users.model");
-const refreshTokenModel = require("../Models/refreshToken.model");
-const jwt = require("jsonwebtoken");
 
 const getAll = async (req, res, next) => {
   try {
@@ -15,6 +13,21 @@ const getAll = async (req, res, next) => {
     res.status(500).json({
       data: error,
       message: error.message,
+    });
+  }
+};
+
+const getOneUser = async (req, res) => {
+  const { userId } = req.body;
+  try {
+    const result = await usersModel.findOne({ _id: userId });
+    res.status(200).json({
+      message: "Get user success",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "message: " + error.message,
     });
   }
 };
@@ -138,82 +151,6 @@ const updateUser = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const user = await usersModel.findOne({ username });
-
-    if (user) {
-      bcrypt.compare(password, user.password, (err, result) => {
-        if (err) {
-          return res.status(500).json({ message: "Error compare password" });
-        }
-        if (result) {
-          const accessToken = jwt.sign(
-            { username: user.username },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: process.env.TOKEN_LIFE }
-          );
-
-          const refreshToken = jwt.sign(
-            { username: user.username },
-            process.env.REFRESH_TOKEN_SECRET,
-            { expiresIn: process.env.REFRESH_TOKEN_LIFE }
-          );
-
-          refreshTokenModel.create({
-            userId: user._id,
-            token: refreshToken,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          });
-
-          res.status(200).json({
-            accessToken,
-            refreshToken,
-          });
-        } else {
-          res.status(400).json({ message: "Password incorrect" });
-        }
-      });
-    } else {
-      res.status(500).json({
-        message: "This user is not exist!",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      data: error,
-    });
-  }
-};
-
-const register = async (req, res) => {
-  const { name, email, username, password, phoneNumber } = req.body;
-  const salt = await bcrypt.genSalt(10);
-  try {
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const result = await usersModel.create({
-      name,
-      email,
-      username,
-      password: hashedPassword,
-      phoneNumber,
-    });
-    res.status(201).json(result);
-  } catch (error) {
-    if (error.code === 11000) {
-      // Lỗi trùng lặp unique
-      const field = Object.keys(error.keyValue)[0];
-      res.status(400).json({
-        [field]: { message: `This ${field} already exist!`, status: "error" },
-      });
-    } else {
-      res.status(500).json("message: " + error.message);
-    }
-  }
-};
-
 module.exports = {
   getAll,
   createSimpleUser,
@@ -221,6 +158,5 @@ module.exports = {
   addAddressDelivery,
   deleteUser,
   updateUser,
-  login,
-  register,
+  getOneUser,
 };

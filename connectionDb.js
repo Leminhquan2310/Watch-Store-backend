@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const productsModel = require("./Models/products.model");
 
 module.exports = async () => {
   mongoose
@@ -7,6 +8,11 @@ module.exports = async () => {
     )
     .then(() => {
       console.log("Connect success");
+      //   await productsModel.syncIndexes();
+      //   console.log("Indexes updated successfully");
+
+      //   // Đóng kết nối sau khi cập nhật
+      //   mongoose.connection.close();
     })
     .catch((err) => {
       console.log("failed to connection", err);

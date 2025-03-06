@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["Admin", "Customer"],
+    enum: ["Admin", "Customer", "Employee"],
     default: "Customer",
   },
   addressDelivery: [{ type: mongoose.Schema.Types.ObjectId, ref: "addresses" }],
